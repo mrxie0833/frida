@@ -44,10 +44,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential curl git flex bison libglib2.0-dev ninja-build
 
-      # 修正點：使用 Frida 官方 Makefile 正確的 target 語法
-      - name: Build Frida
+      # 關鍵修正：透過 Python setup 腳本或 Makefile 正確觸發工具鏈建置
+      - name: Build Frida Server
         run: |
-          make android-${{ github.event.inputs.target_arch }}
+          make core-android-${{ github.event.inputs.target_arch }} FRIDA_SERVER=enabled || \
+          make tools-android-${{ github.event.inputs.target_arch }} || \
+          ./releng/build-core-android-${{ github.event.inputs.target_arch }}.sh
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -57,3 +59,4 @@ jobs:
             build/frida-android-*/bin/frida-server*
             build/submodules/frida-core/server/frida-server*
             build/tmp-android-*/frida-core/server/frida-server*
+            build/tmp_thin-android-*/frida-core/server/frida-server*

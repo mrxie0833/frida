@@ -1,0 +1,61 @@
+name: Build Frida Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      frida_version:
+        description: 'Frida Version/Tag (例如: 16.1.4 或 main)'
+        required: true
+        default: '16.1.4'
+      target_arch:
+        description: 'Target Architecture'
+        required: true
+        default: 'android-arm64'
+        type: choice
+        options:
+          - android-arm64
+          - android-arm
+          - android-x86
+          - android-x86_64
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          ref: ${{ github.event.inputs.frida_version }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl git flex bison libglib2.0-dev
+
+      # Optional: 在此處加入去除 Anti-Frida 特徵的替換指令 (例: 將 frida 改名)
+      - name: Patch Frida Features (Optional)
+        run: |
+          # 範例：將代碼中的 frida-agent 關鍵字替換為 myagent (視需求自訂)
+          # grep -rl "frida-agent" . | xargs sed -i 's/frida-agent/myagent/g' || true
+          echo "Patching complete (or skipped)."
+
+      - name: Download Toolchain & SDK
+        run: |
+          make -f Makefile.sdk.mk FRIDA_HOST=${{ github.event.inputs.target_arch }}
+
+      - name: Build Frida Core / Server
+        run: |
+          make core-${{ github.event.inputs.target_arch }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frida-server-${{ github.event.inputs.frida_version }}-${{ github.event.inputs.target_arch }}
+          path: build/frida-android-*/bin/frida-server*

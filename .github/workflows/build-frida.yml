@@ -45,6 +45,14 @@ jobs:
           # 範例：將代碼中的 frida-agent 關鍵字替換為 myagent (視需求自訂)
           # grep -rl "frida-agent" . | xargs sed -i 's/frida-agent/myagent/g' || true
           echo "Patching complete (or skipped)."
+          
+          # 1. 修改預設服務連接埠 (例如從 27042 改為 39999)
+          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" \) -exec sed -i 's/27042/39999/g' {} +
+
+          # 2. 修改預設執行緒/關鍵字名稱
+          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" \) -exec sed -i 's/frida-main-loop/my-main-loop/g' {} +
+          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" \) -exec sed -i 's/frida-agent/my-agent/g' {} +
+          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" \) -exec sed -i 's/gum-js-loop/my-js-loop/g' {} +
 
       - name: Download Toolchain & SDK
         run: |

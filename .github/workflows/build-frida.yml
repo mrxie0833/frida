@@ -46,13 +46,13 @@ jobs:
 
       - name: Build Frida Server
         run: |
-          # 優先嘗試 Frida 17/Main 推薦的 releng/build.py 構建工具
+          # 判斷專案結構：新版 (16.x+) 採用 releng/build.py
           if [ -f "releng/build.py" ]; then
             python3 releng/build.py core-android-${{ github.event.inputs.target_arch }} --enable-server
-          # 備用方案：適用於 Frida 16 及更早版本
           else
+            # 舊版 (15.x 及更早) 採用 Makefile 流程
             make -f Makefile.sdk.mk FRIDA_HOST=android-${{ github.event.inputs.target_arch }} || true
-            make core-android-${{ github.event.inputs.target_arch }} || make android-${{ github.event.inputs.target_arch }}
+            make core-android-${{ github.event.inputs.target_arch }}
           fi
 
       - name: Upload Artifact

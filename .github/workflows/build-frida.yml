@@ -6,7 +6,7 @@ on:
       frida_version:
         description: 'Frida Version/Tag (例如: 16.1.4 或 main)'
         required: true
-        default: '16.1.4'
+        default: 'main'
       target_arch:
         description: 'Target Architecture'
         required: true

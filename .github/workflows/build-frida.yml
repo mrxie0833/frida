@@ -6,7 +6,7 @@ on:
       frida_version:
         description: 'Frida Version/Tag (例如: 16.1.4 或 main)'
         required: true
-        default: 'main'
+        default: '16.1.4'
       target_arch:
         description: 'Target Architecture'
         required: true
@@ -44,12 +44,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential curl git flex bison libglib2.0-dev ninja-build
 
-      # 關鍵修正：透過 Python setup 腳本或 Makefile 正確觸發工具鏈建置
       - name: Build Frida Server
         run: |
-          make core-android-${{ github.event.inputs.target_arch }} FRIDA_SERVER=enabled || \
-          make tools-android-${{ github.event.inputs.target_arch }} || \
-          ./releng/build-core-android-${{ github.event.inputs.target_arch }}.sh
+          # 優先嘗試 Frida 17/Main 推薦的 releng/build.py 構建工具
+          if [ -f "releng/build.py" ]; then
+            python3 releng/build.py core-android-${{ github.event.inputs.target_arch }} --enable-server
+          # 備用方案：適用於 Frida 16 及更早版本
+          else
+            make -f Makefile.sdk.mk FRIDA_HOST=android-${{ github.event.inputs.target_arch }} || true
+            make core-android-${{ github.event.inputs.target_arch }} || make android-${{ github.event.inputs.target_arch }}
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -57,6 +61,6 @@ jobs:
           name: frida-server-${{ github.event.inputs.frida_version }}-android-${{ github.event.inputs.target_arch }}
           path: |
             build/frida-android-*/bin/frida-server*
-            build/submodules/frida-core/server/frida-server*
             build/tmp-android-*/frida-core/server/frida-server*
             build/tmp_thin-android-*/frida-core/server/frida-server*
+            build/submodules/frida-core/server/frida-server*

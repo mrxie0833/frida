@@ -6,7 +6,7 @@ on:
       frida_version:
         description: 'Frida Version/Tag (例如: 16.1.4 或 main)'
         required: true
-        default: 'main'
+        default: '16.1.4'
       target_arch:
         description: 'Target Architecture'
         required: true
@@ -46,13 +46,28 @@ jobs:
 
       - name: Build Frida Server
         run: |
-          # 判斷專案結構：新版 (16.x+) 採用 releng/build.py
+          # 定義目標平台名稱
+          HOST_PLATFORM="android-${{ github.event.inputs.target_arch }}"
+          
+          # 如果有 setup-env.sh，先載入環境變數與工具鏈
+          if [ -f "releng/setup-env.sh" ]; then
+            source releng/setup-env.sh
+          fi
+
+          # 情況 1：Frida 16.2+ / 17+ 版本的 Python 構建入口
           if [ -f "releng/build.py" ]; then
-            python3 releng/build.py core-android-${{ github.event.inputs.target_arch }} --enable-server
+            python3 releng/build.py frida-server --host=${HOST_PLATFORM}
+          
+          # 情況 2：使用 releng/deps.py + meson
+          elif [ -f "releng/deps.py" ]; then
+            python3 releng/deps.py get --host=${HOST_PLATFORM}
+            python3 releng/meson/meson.py setup build --cross-file build/frida-${HOST_PLATFORM}.txt -Dserver=enabled
+            python3 releng/meson/meson.py compile -C build frida-server
+          
+          # 情況 3：舊版 Frida 15/16 傳統 Makefile
           else
-            # 舊版 (15.x 及更早) 採用 Makefile 流程
-            make -f Makefile.sdk.mk FRIDA_HOST=android-${{ github.event.inputs.target_arch }} || true
-            make core-android-${{ github.event.inputs.target_arch }}
+            make FRIDA_HOST=${HOST_PLATFORM} server-${HOST_PLATFORM} || \
+            make FRIDA_HOST=${HOST_PLATFORM}
           fi
 
       - name: Upload Artifact
@@ -61,6 +76,7 @@ jobs:
           name: frida-server-${{ github.event.inputs.frida_version }}-android-${{ github.event.inputs.target_arch }}
           path: |
             build/frida-android-*/bin/frida-server*
-            build/tmp-android-*/frida-core/server/frida-server*
-            build/tmp_thin-android-*/frida-core/server/frida-server*
+            build/frida-android-*/subprojects/frida-core/server/frida-server*
             build/submodules/frida-core/server/frida-server*
+            build/server/frida-server*
+            **/frida-server

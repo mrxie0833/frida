@@ -50,20 +50,23 @@ jobs:
         run: |
           TARGET="android-${{ github.event.inputs.target_arch }}"
           
-          # 優先使用 16.x / 17.x 官方標準構建入口
+          # 執行編譯（不使用 || true，讓錯誤能正常暴露）
           if [ -f "releng/build.py" ]; then
             python3 releng/build.py frida-server --host=${TARGET}
           else
-            # 舊版 fallback 邏輯
-            make FRIDA_HOST=${TARGET} server-${TARGET} || make FRIDA_HOST=${TARGET}
+            make server-${TARGET}
           fi
+
+      - name: Debug Find Files (排查檔案位置)
+        if: always()
+        run: |
+          echo "=== 搜尋 build 目錄下的 frida 相關檔案 ==="
+          find build -type f -name "*frida-server*" 2>/dev/null || true
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: frida-server-${{ github.event.inputs.frida_version }}-android-${{ github.event.inputs.target_arch }}
           path: |
-            build/frida-android-*/bin/frida-server*
-            build/frida-android-*/subprojects/frida-core/server/frida-server*
-            build/subprojects/frida-core/server/frida-server*
-            **/frida-server
+            build/**/frida-server*
+          if-no-files-found: error

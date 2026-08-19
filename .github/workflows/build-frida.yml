@@ -64,10 +64,20 @@ jobs:
           echo "=== 搜尋 build 目錄下的 frida 相關檔案 ==="
           find build -type f -name "*frida-server*" 2>/dev/null || true
 
+      - name: Prepare Artifact Directory
+        run: |
+          # 建立乾淨的收集目錄
+          mkdir -p output_dist
+          
+          # 搜尋 build 目錄下 >100KB 且可執行的 frida-server 實體檔案，複製到 output_dist
+          find build/ -type f -name "frida-server*" -size +100k -exec cp {} output_dist/ \;
+          
+          echo "=== 準備上傳的打包檔案清單 ==="
+          ls -lh output_dist/
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: frida-server-${{ github.event.inputs.frida_version }}-android-${{ github.event.inputs.target_arch }}
-          path: |
-            build/**/frida-server*
+          path: output_dist/
           if-no-files-found: error

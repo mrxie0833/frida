@@ -45,16 +45,17 @@ jobs:
         run: |
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
           echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
-
+        
       - name: Build Frida Server
         run: |
           TARGET="android-${{ github.event.inputs.target_arch }}"
           
-          # 執行編譯（不使用 || true，讓錯誤能正常暴露）
+          # 優先使用 16.x / 17.x 官方標準構建入口
           if [ -f "releng/build.py" ]; then
             python3 releng/build.py frida-server --host=${TARGET}
           else
-            make server-${TARGET}
+            # 舊版 fallback 邏輯
+            make FRIDA_HOST=${TARGET} server-${TARGET} || make FRIDA_HOST=${TARGET}
           fi
 
       - name: Debug Find Files (排查檔案位置)

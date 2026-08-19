@@ -40,24 +40,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential curl git flex bison libglib2.0-dev ninja-build pkg-config
 
-      - name: Setup Android NDK
-        uses: nsetup/setup-ndk@v1
-        with:
-          ndk-version: r25c
+      # 使用 Runner 預裝的 Android NDK 設定環境變數
+      - name: Setup NDK Environment
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
 
       - name: Build Frida Server
         run: |
-          # 設定目標名稱
           TARGET="android-${{ github.event.inputs.target_arch }}"
           
-          # 自動下載並準備 Toolchain/SDK (避免二進位傾倒)
-          make -f Makefile.sdk.mk FRIDA_HOST=${TARGET} > /dev/null 2>&1 || true
-          
-          # 執行編譯
+          # 優先使用 16.x / 17.x 官方標準構建入口
           if [ -f "releng/build.py" ]; then
             python3 releng/build.py frida-server --host=${TARGET}
           else
-            make server-${TARGET} || make core-${TARGET}
+            # 舊版 fallback 邏輯
+            make FRIDA_HOST=${TARGET} server-${TARGET} || make FRIDA_HOST=${TARGET}
           fi
 
       - name: Upload Artifact
